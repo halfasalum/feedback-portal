@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.cluster import KMeans
+import altair as alt
 
 user = 'root'
 password = 'root'
@@ -180,7 +181,7 @@ def nomalizeData2():
 
     # Map clusters to priority
     customers['priority'] = customers['cluster'].map({0: 'Low Priority', 1: 'Medium Priority', 2: 'High Priority'})
-    st.table(customers.head())
+    #st.table(customers.head())
 
     # Drop rows with NaN values
     customers = customers.dropna()
@@ -198,26 +199,26 @@ def nomalizeData2():
     intercept = model.intercept_
 
     # Display results
-    st.write(f"Alpha (success loan) = {alpha}")
-    st.write(f"Beta (failed loans) = {beta}")
-    st.write(f"Gamma (income) = {gamma}")
-    st.write(f"Intercept = {intercept}")
+    #st.write(f"Alpha (success loan) = {alpha}")
+    #st.write(f"Beta (failed loans) = {beta}")
+    #st.write(f"Gamma (income) = {gamma}")
+    #st.write(f"Intercept = {intercept}")
     customers.to_csv("customers_insight.csv", index=False)
     customers = pd.read_csv("customers_insight.csv")
     st.divider()
-    st.text('Final Customer Score')
+    #st.text('Final Customer Score')
     customers['score']  =  (alpha * customers['nomalized_success_loan'] +
                       beta * customers['nomalized_failed_loans'] +
                       gamma * customers['nomalized_income'] +
                       intercept)
-    st.write(customers['score'].min())
-    st.write(customers['score'].max())
-    st.scatter_chart(customers['score'])
+    #st.write(customers['score'].min())
+    #st.write(customers['score'].max())
+    #st.scatter_chart(customers['score'])
 
     customers['final_priority'] = customers['score'].apply(assign_priority)
     customers.to_csv("customers_insight.csv", index=False)
 
-    st.table(customers.head())
+    #st.table(customers.head())
 
 def assign_priority(score):
     thresholds = {
@@ -404,6 +405,7 @@ with customerSection:
         st.write(data) 
 
 
+
 with graph:
     st.text('Dataset Graphs')
 
@@ -422,9 +424,11 @@ def loansByAge():
     customers['age']    = (today - customers['dob']).astype('<m8[Y]').astype(int)
     customers['year_range']     = customers['age'].apply(age_range)
     customers.to_csv("customers.csv", index=False)
-loansByAge()
+#loansByAge()
 
 customers               = pd.read_csv("customers.csv")
+
+
 
 with insight:
     customer_insight   = pd.read_csv("customers_insight.csv")
@@ -444,18 +448,45 @@ with insight:
         st.metric("Defaulted Loans", len(defaultedLoans))
     
     st.divider()
-    st.caption('Analyze customer data')
-    analyzeButton = st.button("Start analyzing")
-    if analyzeButton :
-        progress_bar = st.progress(0)
-        customers   = pd.read_csv("customers.csv")
-        customers['dob']    = pd.to_datetime(customers['dob'])
-        today               = datetime.today()
-        customers['age']    = (today - customers['dob']).astype('<m8[Y]').astype(int)
-        customers['year_range']     = customers['age'].apply(age_range)
-        customers.to_csv("customers.csv", index=False)
+    col1, col2 = st.columns(2)
+    nomalizeData2()
+    with col1:
+        st.caption("Customers Segmentatioin Based on their Similarities")
+        customers = pd.read_csv("customers_insight.csv")
+        first_nomolized = customers.groupby(['cluster']).size().reset_index(name='count')
+        first_nomolized['priority'] = first_nomolized['cluster'].map({0:'Low Priority', 1:'Medium Priority', 2:'High Priority'})
+        st.table(first_nomolized[['count','priority']])
+        st.caption("Customer Distribution Based On  their Similarities")
+        st.scatter_chart(customers,x='id' , y='cluster')
+    
+    with col2:
+        st.caption("Customer Segmentation Based on their Score")
+        customers = pd.read_csv("customers_insight.csv")
+        customers['final_cluster']  = customers['final_priority'].map({'Low Priority':0,'Medium Priority':1,'High Priority':2})
+        second_nomolized = customers.groupby(['final_cluster']).size().reset_index(name='count')
+        second_nomolized['priority'] = second_nomolized['final_cluster'].map({0:'Low Priority', 1:'Medium Priority', 2:'High Priority'})
+        st.table(second_nomolized[['priority','count']])
+        st.caption("Score Distribution By Customer")
+        st.scatter_chart(customers, x = 'id', y = 'score')
         
-        progress_bar.progress(100)
+        
+        
+
+
+
+
+
+    #analyzeButton = st.button("Start analyzing")
+    # if analyzeButton :
+    #     progress_bar = st.progress(0)
+    #     customers   = pd.read_csv("customers.csv")
+    #     customers['dob']    = pd.to_datetime(customers['dob'])
+    #     today               = datetime.today()
+    #     customers['age']    = (today - customers['dob']).astype('<m8[Y]').astype(int)
+    #     customers['year_range']     = customers['age'].apply(age_range)
+    #     customers.to_csv("customers.csv", index=False)
+        
+    #     progress_bar.progress(100)
 
     
 
